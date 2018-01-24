@@ -21,5 +21,5 @@
 #include "stdafx.h"
 
 struct Process {
-  static void wait(HANDLE processHandle);
+	static void wait(HANDLE processHandle);
 };

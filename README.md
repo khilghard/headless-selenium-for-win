@@ -2,18 +2,18 @@
 
 [![Build status](https://ci.appveyor.com/api/projects/status/v5mtxvfvb2necfkb?svg=true)](https://ci.appveyor.com/project/kybu/headless-selenium-for-win)
 
-It is quite inconvenient that a browser window pops up when running Selenium
-tests. It might cause tests to fail because such window needs to hold user
+It is quite inconvenient when a browser window pops up when running Selenium
+tests. It might cause tests to fail because the browser window needs to hold user
 input focus. That is the case with IE at least.
 
-In Linux world, this is solved by running browsers in a virtual frame-buffer.
-Similar approach can be taken on Windows platform as well.
+In the Linux world, this is solved by running browsers in a virtual frame-buffer.
+A similar approach can be taken on the Windows platform as well.
 
-Contrary to popular believe, Windows is fully multi-user OS. On top of
-that, it supports virtual desktops even though it is not very often used compared
+Contrary to popular belief, Windows is fully multi-user OS. On top of
+that, it supports virtual desktops even though it is not very often used as compared
 to Linux desktop environments.
 
-This application uses virtual desktops to run web browsers in so that they
+This application uses virtual desktops to run web browsers so that they
 do not disturb the main user desktop.
 
 It can be used by any language supported by Selenium Webdriver (Java, C#,
@@ -55,6 +55,13 @@ Any command line parameters are passed on to the IE driver.
 New virtual desktop name is `HeadlessDesktop`. If you want to create a unique desktop name each time
 the `headless_ie_selenium.exe` executable is run, variable `HEADLESS_UNIQUE` has to exist in the environment.
 Its value does not matter, unique desktop name will be generated as long as this variable is present.
+
+An addition was made recently that allows for the driver path and unique value to be set at the command line:
+  1. -unique
+  2. -driver MicrosoftWebDriver.exe
+
+They are used like this:
+  - headless_ie_selenium.exe -unique -driver MicrosoftWebDriver.exe --host=127.0.0.1 --verbose --port=51131
 
 ## Basic Ruby example
 
@@ -165,13 +172,46 @@ Command line options:
       -x [ --no-explorer ]        Don't run explorer in the created desktop
 
 
+# Build Process
+
+## Boost 1.66.0
+
+https://stackoverflow.com/questions/13042561/fatal-error-lnk1104-cannot-open-file-libboost-system-vc110-mt-gd-1-51-lib/13042696
+
+1. First Unzip the boost library to any directory of your choice. I recommend c:\Program Files.
+1. Open your visual C++.
+1. Create a new project.
+1. Right click on the project.
+1. Click on property.
+1. Click on C/C++.
+1. Click on general.
+1. Select additional include library.
+1. Include the library destination. e.g. c:\boost_1_66_0.
+1. Click on pre-compiler header.
+1. Click on create/use pre-compiled header.
+1. Select not using pre-compiled header.
+1. Then go over to the link library were you experienced your problems.
+
+1. Go to were the extracted file was c:\boost_1_66_0.
+1. Click on booststrap.bat (don't bother to type on the command window just wait and don't close the window that is the place I had my problem that took me two weeks to solve. After a while the booststrap will run and produce the same file, but now with two different names: b2, and bjam.
+1. Click on b2 and wait it to run.
+1. Click on bjam and wait it to run. Then a folder will be produce called stage.
+1. Right click on the project.
+1. Click on property.
+1. Click on linker.
+1. Click on general.
+1. Click on include additional library directory.
+1. Select the part of the library e.g. c:\boost_1_66_0\stage\lib.
+1. And you are good to go!
+
+
 # Technical details
 
-Tested on Win 7.
+Tested on Win 7, 10.
 
 Supported browsers: IE, Firefox, Chrome.
 
-Developed using VS 2013 Express, Boost 1.59 and a bit of system level
+Developed using VS 2017 Enterprise, Boost 1.66 and a bit of system level
 programming skills.
 
 # License

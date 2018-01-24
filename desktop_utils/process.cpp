@@ -19,5 +19,5 @@
 #include "stdafx.h"
 
 void Process::wait(HANDLE processHandle) {
-  WaitForSingleObject(processHandle, INFINITE);
+	WaitForSingleObject(processHandle, INFINITE);
 }

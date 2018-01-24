@@ -21,194 +21,194 @@ using namespace std;
 namespace bo = boost;
 
 HDESK Desktop::create(const string &name) {
-  HDESK handle =
-    CreateDesktop(
-    bo::from_utf8(name).c_str(), NULL, NULL, DF_ALLOWOTHERACCOUNTHOOK, GENERIC_ALL, NULL);
+	HDESK handle =
+		CreateDesktop(
+			bo::from_utf8(name).c_str(), NULL, NULL, DF_ALLOWOTHERACCOUNTHOOK, GENERIC_ALL, NULL);
 
-  if (handle == NULL)
-    throw DesktopError(
-      (bo::format("Could not create the '%1%' desktop!") % name));
+	if (handle == NULL)
+		throw DesktopError(
+		(bo::format("Could not create the '%1%' desktop!") % name));
 
-  return handle;
+	return handle;
 }
 
 bool Desktop::exists(const string &name) {
-  HDESK handle = OpenDesktop(
-    bo::from_utf8(name).c_str(),
-    0, FALSE, 0);
+	HDESK handle = OpenDesktop(
+		bo::from_utf8(name).c_str(),
+		0, FALSE, 0);
 
-  bool e = handle != NULL;
-  CloseDesktop(handle);
+	bool e = handle != NULL;
+	CloseDesktop(handle);
 
-  return e;
+	return e;
 }
 
 // appName = dir
 // cmdLine = *.cpp
 PROCESS_INFORMATION Desktop::createProcess(
-  const string &desktopName, const string &appName,
-  const string &cmdLine, int processCreationFlags) {
+	const string &desktopName, const string &appName,
+	const string &cmdLine, int processCreationFlags) {
 
-  STARTUPINFO si;
-  memset(&si, 0, sizeof(si));
-  si.cb = sizeof(si);
-  wstring desktopNameW = bo::from_utf8(desktopName);
-  si.lpDesktop = const_cast<wchar_t *>(desktopNameW.c_str());
+	STARTUPINFO si;
+	memset(&si, 0, sizeof(si));
+	si.cb = sizeof(si);
+	wstring desktopNameW = bo::from_utf8(desktopName);
+	si.lpDesktop = const_cast<wchar_t *>(desktopNameW.c_str());
 
-  PROCESS_INFORMATION pi;
-  memset(&pi, 0, sizeof(pi));
+	PROCESS_INFORMATION pi;
+	memset(&pi, 0, sizeof(pi));
 
-  bo::movelib::unique_ptr<wchar_t []> cmdLineTmp;
-  bo::movelib::unique_ptr<wchar_t []> appNameTmp;
+	bo::movelib::unique_ptr<wchar_t[]> cmdLineTmp;
+	bo::movelib::unique_ptr<wchar_t[]> appNameTmp;
 
-  if (!appName.empty() && !cmdLine.empty()) {
-    wstring tmp = bo::from_utf8(appName + " " + cmdLine);
+	if (!appName.empty() && !cmdLine.empty()) {
+		wstring tmp = bo::from_utf8(appName + " " + cmdLine);
 
-    cmdLineTmp.reset(new wchar_t[tmp.size()+1]);
-    memmove(cmdLineTmp.get(), tmp.c_str(), tmp.size()*sizeof(wchar_t));
-    cmdLineTmp[tmp.size()] = 0;
-  }
-  else if (!cmdLine.empty()) {
-    wstring tmp = bo::from_utf8(cmdLine);
+		cmdLineTmp.reset(new wchar_t[tmp.size() + 1]);
+		memmove(cmdLineTmp.get(), tmp.c_str(), tmp.size() * sizeof(wchar_t));
+		cmdLineTmp[tmp.size()] = 0;
+	}
+	else if (!cmdLine.empty()) {
+		wstring tmp = bo::from_utf8(cmdLine);
 
-    cmdLineTmp.reset(new wchar_t[tmp.size()+1]);
-    memmove(cmdLineTmp.get(), tmp.c_str(), tmp.size()*sizeof(wchar_t));
-    cmdLineTmp[tmp.size()] = 0;
-  }
+		cmdLineTmp.reset(new wchar_t[tmp.size() + 1]);
+		memmove(cmdLineTmp.get(), tmp.c_str(), tmp.size() * sizeof(wchar_t));
+		cmdLineTmp[tmp.size()] = 0;
+	}
 
-  if (!appName.empty()) {
-    wstring tmp = bo::from_utf8(appName);
+	if (!appName.empty()) {
+		wstring tmp = bo::from_utf8(appName);
 
-    appNameTmp.reset(new wchar_t[tmp.size()+1]);
-    memmove(appNameTmp.get(), tmp.c_str(), tmp.size()*sizeof(wchar_t));
-    appNameTmp[tmp.size()] = 0;
-  }
+		appNameTmp.reset(new wchar_t[tmp.size() + 1]);
+		memmove(appNameTmp.get(), tmp.c_str(), tmp.size() * sizeof(wchar_t));
+		appNameTmp[tmp.size()] = 0;
+	}
 
-  BOOL created = CreateProcess(
-    appNameTmp.get(),
-    cmdLineTmp.get(),
-    NULL, NULL, FALSE, processCreationFlags, NULL, NULL,
-    &si, &pi);
+	BOOL created = CreateProcess(
+		appNameTmp.get(),
+		cmdLineTmp.get(),
+		NULL, NULL, FALSE, processCreationFlags, NULL, NULL,
+		&si, &pi);
 
-  if (created == FALSE)
-    throw DesktopError(
-      bo::format(
-        "Could not run the '%1%' command in the '%2%' desktop!")
-        % (appName.empty() ? bo::to_utf8(cmdLineTmp.get()) : appName.c_str())
-        % desktopName);
+	if (created == FALSE)
+		throw DesktopError(
+			bo::format(
+				"Could not run the '%1%' command in the '%2%' desktop!")
+			% (appName.empty() ? bo::to_utf8(cmdLineTmp.get()) : appName.c_str())
+			% desktopName);
 
-  return pi;
+	return pi;
 }
 
 auto Desktop::createProcessInTheJob(
-  const string &desktopName,
-  const string &appName,
-  const string &cmdLine,
-  HANDLE jobHandle) -> ProcessInTheJob {
+	const string &desktopName,
+	const string &appName,
+	const string &cmdLine,
+	HANDLE jobHandle) -> ProcessInTheJob {
 
-  HANDLE newJobHandle = 0;
+	HANDLE newJobHandle = 0;
 
-  if (!jobHandle) {
-    newJobHandle = CreateJobObject(NULL, NULL);
-    if (newJobHandle == NULL)
-      throw DesktopError("Job cannot be created!");
+	if (!jobHandle) {
+		newJobHandle = CreateJobObject(NULL, NULL);
+		if (newJobHandle == NULL)
+			throw DesktopError("Job cannot be created!");
 
-    JOBOBJECT_EXTENDED_LIMIT_INFORMATION jobLimits;
-    memset(&jobLimits, 0, sizeof(jobLimits));
+		JOBOBJECT_EXTENDED_LIMIT_INFORMATION jobLimits;
+		memset(&jobLimits, 0, sizeof(jobLimits));
 
-    jobLimits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+		jobLimits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
 
-    SetInformationJobObject(
-      newJobHandle, JobObjectExtendedLimitInformation,
-      &jobLimits, sizeof(jobLimits));
+		SetInformationJobObject(
+			newJobHandle, JobObjectExtendedLimitInformation,
+			&jobLimits, sizeof(jobLimits));
 
-    jobHandle = newJobHandle;
-  }
+		jobHandle = newJobHandle;
+	}
 
-  auto processInfo = createProcess(
-    desktopName, appName, cmdLine,
-    NORMAL_PRIORITY_CLASS | CREATE_SUSPENDED);
+	auto processInfo = createProcess(
+		desktopName, appName, cmdLine,
+		NORMAL_PRIORITY_CLASS | CREATE_SUSPENDED);
 
-  auto r = AssignProcessToJobObject(jobHandle, processInfo.hProcess);
-  if (r == NULL) {
-    if (newJobHandle)
-      CloseHandle(newJobHandle);
+	auto r = AssignProcessToJobObject(jobHandle, processInfo.hProcess);
+	if (r == NULL) {
+		if (newJobHandle)
+			CloseHandle(newJobHandle);
 
-    return ProcessInTheJob(
-      ProcessInTheJob::COULD_NOT_ASSIGN_JOB,
-      0,
-      processInfo);
-  }
+		return ProcessInTheJob(
+			ProcessInTheJob::COULD_NOT_ASSIGN_JOB,
+			0,
+			processInfo);
+	}
 
-  ResumeThread(processInfo.hThread);
+	ResumeThread(processInfo.hThread);
 
-  return ProcessInTheJob(
-    ProcessInTheJob::JOB_ASSIGNED,
-    jobHandle,
-    processInfo);
+	return ProcessInTheJob(
+		ProcessInTheJob::JOB_ASSIGNED,
+		jobHandle,
+		processInfo);
 }
 
 void Desktop::switchToDefault() {
-  HDESK h = OpenDesktop(
-    _T("Default"), DF_ALLOWOTHERACCOUNTHOOK, TRUE, GENERIC_ALL);
+	HDESK h = OpenDesktop(
+		_T("Default"), DF_ALLOWOTHERACCOUNTHOOK, TRUE, GENERIC_ALL);
 
-  switchTo(h);
+	switchTo(h);
 }
 
 void Desktop::switchTo(const string &desktopName) {
-    HDESK h = OpenDesktop(
-      bo::from_utf8(desktopName).c_str(),
-      DF_ALLOWOTHERACCOUNTHOOK, TRUE, GENERIC_ALL);
+	HDESK h = OpenDesktop(
+		bo::from_utf8(desktopName).c_str(),
+		DF_ALLOWOTHERACCOUNTHOOK, TRUE, GENERIC_ALL);
 
-    switchTo(h);
+	switchTo(h);
 }
 
 vector<string> Desktop::desktops() {
-  vector<string> desktops;
+	vector<string> desktops;
 
-  EnumDesktops(
-    GetProcessWindowStation(), enumDesktopProc, (LPARAM)&desktops);
+	EnumDesktops(
+		GetProcessWindowStation(), enumDesktopProc, (LPARAM)&desktops);
 
-  return desktops;
+	return desktops;
 }
 
 vector<HWND> Desktop::allTopLevelWindows(const std::string &name) {
-  vector<HWND> windows;
+	vector<HWND> windows;
 
-  HDESK handle = OpenDesktop(
-    bo::from_utf8(name).c_str(),
-    0, FALSE, 0);
+	HDESK handle = OpenDesktop(
+		bo::from_utf8(name).c_str(),
+		0, FALSE, 0);
 
-  EnumDesktopWindows(handle, enumWindowsProc, (LPARAM)&windows);
-  CloseDesktop(handle);
+	EnumDesktopWindows(handle, enumWindowsProc, (LPARAM)&windows);
+	CloseDesktop(handle);
 
-  return windows;
+	return windows;
 }
 
 BOOL CALLBACK Desktop::enumWindowsProc(
-  _In_  HWND hwnd,
-  _In_  LPARAM lParam) {
+	_In_  HWND hwnd,
+	_In_  LPARAM lParam) {
 
-  vector<HWND> *windows = (vector<HWND> *)lParam;
-  windows->push_back(hwnd);
+	vector<HWND> *windows = (vector<HWND> *)lParam;
+	windows->push_back(hwnd);
 
-  return TRUE;
+	return TRUE;
 }
 
 void Desktop::switchTo(HDESK desktopHandle) {
-  if (SwitchDesktop(desktopHandle) == 0)
-    throw DesktopError(
-      bo::format(
-        "Could not switch to a desktop with the '%1%' handle")
-        % desktopHandle);
+	if (SwitchDesktop(desktopHandle) == 0)
+		throw DesktopError(
+			bo::format(
+				"Could not switch to a desktop with the '%1%' handle")
+			% desktopHandle);
 }
 
 BOOL CALLBACK Desktop::enumDesktopProc(
-  _In_  LPTSTR desktop,
-  _In_  LPARAM param) {
+	_In_  LPTSTR desktop,
+	_In_  LPARAM param) {
 
-  vector<string> *desktops = (vector<string> *)param;
-  desktops->push_back(bo::to_utf8(desktop));
+	vector<string> *desktops = (vector<string> *)param;
+	desktops->push_back(bo::to_utf8(desktop));
 
-  return TRUE;
+	return TRUE;
 }
