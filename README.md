@@ -58,10 +58,10 @@ Its value does not matter, unique desktop name will be generated as long as this
 
 An addition was made recently that allows for the driver path and unique value to be set at the command line:
   1. -unique
-  2. -driver MicrosoftWebDriver.exe
+  2. -driver IEDriverServer.exe
 
 They are used like this:
-  - headless_ie_selenium.exe -unique -driver MicrosoftWebDriver.exe --host=127.0.0.1 --verbose --port=51131
+  - headless_ie_selenium.exe -unique -driver IEDriverServer.exe --host=127.0.0.1 --verbose --port=51131
 
 ## Basic Ruby example
 
